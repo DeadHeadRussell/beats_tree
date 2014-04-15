@@ -1,0 +1,12 @@
+{
+  "name": "beat_tree",
+  "version": "0.0.1",
+  "description": "Collaboratively create funky beats with friends and enemies",
+  "author": "Who?",
+  "dependencies": {
+    "express": "3.x.x",
+    "sqlite3": "2.x.x"
+  },
+  "engine": ">= 0.8.14"
+}
+ 
