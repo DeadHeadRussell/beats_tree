@@ -2,11 +2,20 @@
   "name": "beat_tree",
   "version": "0.0.1",
   "description": "Collaboratively create funky beats with friends and enemies",
-  "author": "Who?",
-  "dependencies": {
-    "express": "3.x.x",
-    "sqlite3": "2.x.x"
+  "private": true,
+  "scripts": {
+    "postinstall": "bower install",
+    "start": "node ./bin/www"
   },
-  "engine": ">= 0.8.14"
+  "dependencies": {
+    "express": "~4.0.0",
+    "static-favicon": "~1.0.0",
+    "morgan": "~1.0.0",
+    "cookie-parser": "~1.0.1",
+    "body-parser": "~1.0.0",
+    "debug": "~0.7.4",
+    "jade": "~1.3.0",
+    "less-middleware": "0.1.15",
+    "monk": "x"
+  }
 }
- 

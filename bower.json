@@ -1,0 +1,12 @@
+{
+  "name": "beat_tree",
+  "version": "0.0.1",
+  "description": "Collaboratively create funky beats with friends and enemies",
+  "private": true,
+  "dependencies": {
+    "angular": "~1.2.x",
+    "jquery": "1.11.0",
+    "angular-route": "~1.2.15",
+    "angular-animate": "~1.2.15"
+  }
+}

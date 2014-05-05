@@ -1,0 +1,10 @@
+div
+  script(src='/js/timbre.js')
+  .grid_top.row
+    span(ng-repeat='cell in track.grid[0] track by $index')
+      .cell(class='value0')
+  .grid
+    .row(ng-repeat='row in track.grid track by $index')
+      span.column(ng-repeat='cell in track.grid[$index] track by $index')
+        .cell(class='value{{cell}}' ng-click='toggle_cell()')
+

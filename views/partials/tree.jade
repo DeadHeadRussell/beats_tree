@@ -1,0 +1,21 @@
+div
+  span Search
+  input(ng-model='query')
+
+ul(class='tracks')
+  li(ng-repeat='track in tracks | filter:query | orderBy:order_prop', class='track')
+    a(href='#/tracks/{{track._id}}') {{track._id}}
+
+div#create
+  div
+    - var min = 60
+    - var max = 180
+    label
+      | Tempo:
+      input#tempo(type='range', min='#{min}', max='#{max}', step='1', ng-model='tempo')
+    div#range
+      span#min= min
+      span#max= max
+    button#create(ng-click='create()') Create
+  div#error
+
