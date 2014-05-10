@@ -1,11 +1,28 @@
-div
-  span {{track._id}}
-  span : tempo = 
-  span {{track.tempo}}
+h2
+  a(href='#/tree/{{track.tree}}') {{track.name}}
 
-  div {{track.grid}}
+#upload.group
+  .waveform
+    .spinner(ng-if='audio_buffer === undefined')
+    div#waveform-div
+      canvas#waveform(width='1600', height='100')
+    a(ng-show='track.previous', ng-click='goto(1)')
+      canvas#previous1(width='1600', height='100')
+    a(ng-show='track.previous.previous', ng-click='goto(2)')
+      canvas#previous2(width='1600', height='100')
+    a(ng-show='track.previous.previous.previous', ng-click='goto(3)')
+      canvas#previous3(width='1600', height='100')
+  .btn-group(ng-show='!isPlaying()')
+    button.btn.btn-info(ng-click='play()') Play
+  .btn-group(ng-show='isPlaying()')
+    button.btn.btn-warning(ng-click='stop()') Stop
+  #error
 
-  div {{track.previous}}
+#nexts(ng-repeat='next in track.next')
+  a(href='#/tracks/{{next}}', ng-click='stop()') Next
 
-  div
-    button(ng-click='fork()') Fork Me
+.btn-group
+  button.btn.btn-success(ng-click='fork()') Add a Layer!
+  button.btn.btn-warning(ng-click='edit()') Edit
+  button.btn.btn-danger(ng-click='delete()') Delete!
+

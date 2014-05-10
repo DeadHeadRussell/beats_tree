@@ -16,6 +16,9 @@
     "debug": "~0.7.4",
     "jade": "~1.3.0",
     "less-middleware": "0.1.15",
-    "monk": "x"
+    "monk": "x",
+    "async": "~0.8.0",
+    "grunt": "*",
+    "multiparty": "~3.2.4"
   }
 }

@@ -7,6 +7,9 @@
     "angular": "~1.2.x",
     "jquery": "1.11.0",
     "angular-route": "~1.2.15",
-    "angular-animate": "~1.2.15"
+    "angular-animate": "~1.2.15",
+    "bootstrap": "~3.1.1",
+    "Recorderjs": "*",
+    "raphael": "*"
   }
 }

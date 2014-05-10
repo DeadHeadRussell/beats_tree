@@ -1,21 +1,31 @@
-div
-  span Search
-  input(ng-model='query')
+h2 {{tree.name}}
 
-ul(class='tracks')
-  li(ng-repeat='track in tracks | filter:query | orderBy:order_prop', class='track')
-    a(href='#/tracks/{{track._id}}') {{track._id}}
+script(type='text/ng-template', id='track_item').
+  <li>
+    <a href='#/tracks/{{data._id}}'>
+      {{ data._id }}
+    </a>
+    <ul>
+      <li ng-repeat='data in data.next' ng-include="'track_item'" tree-node></li>
+    </ul>
+  </li>
 
-div#create
-  div
-    - var min = 60
-    - var max = 180
-    label
-      | Tempo:
-      input#tempo(type='range', min='#{min}', max='#{max}', step='1', ng-model='tempo')
-    div#range
-      span#min= min
-      span#max= max
-    button#create(ng-click='create()') Create
-  div#error
+.tree
+
+
+#controls.group
+  form(role='form')
+    #playstop
+      button.btn.btn-primary(ng-click='play()', ng-show='!playing') Play
+      button.btn.btn-primary(ng-click='stop()', ng-show='playing') Stop
+
+    .form-group
+      label.control-label(for='random') Random Jump Percentage
+      input#random.form-control(ng-model='random_percent', type='range', min='0', max='1', step='0.01')
+
+    #track-buttons.btn-group
+      button.btn.btn-primary(ng-click='view()', class='{{!selected_track ? "disabled" : ""}}') View
+      button.btn.btn-success(ng-click='play_from()', class='{{!selected_track || playing ? "disabled" : ""}}') Play From Track
+      button.btn.btn-danger(ng-click='delete()', class='{{!selected_track ? "disabled" : ""}}') Delete!
+  #error
 

@@ -1,10 +1,42 @@
-div
-  script(src='/js/timbre.js')
-  .grid_top.row
-    span(ng-repeat='cell in track.grid[0] track by $index')
-      .cell(class='value0')
-  .grid
-    .row(ng-repeat='row in track.grid track by $index')
-      span.column(ng-repeat='cell in track.grid[$index] track by $index')
-        .cell(class='value{{cell}}' ng-click='toggle_cell()')
+h2
+  a(href='#/tree/{{track.tree}}') {{track.name}}
+h4 {{track.tempo + 'bpm'}}, {{length.seconds_neat + 's'}}
+
+#upload.group
+  form(role='form')
+    .waveform
+      .spinner(ng-if='audio_buffer === undefined')
+      #waveform-div
+        canvas#waveform(width='1600', height='100')
+      a(ng-show='track.previous', ng-click='goto(1)')
+        canvas#previous1(width='1600', height='100')
+      a(ng-show='track.previous.previous', ng-click='goto(2)')
+        canvas#previous2(width='1600', height='100')
+      a(ng-show='track.previous.previous.previous', ng-click='goto(3)')
+        canvas#previous3(width='1600', height='100')
+    .form-group
+      label.control-label(for='name') Audio
+      input#audio.form-control(type='file', ng-model='audio_file')
+
+    .form-group
+      input#metronome(ng-model='use_metronome', type='checkbox', checked='true')
+      label(for='metronome') Use Metronome
+
+    .form-group
+      label(for='gain') Gain
+      input#gain.form-control(type='range', min='1', ng-model='gain')
+
+    .btn-group(ng-show='!playing && !recording')
+      button.btn.btn-info(ng-click='play()', class='{{ audio_buffer ? "" : "disabled" }}') Play
+      button.btn.btn-danger(ng-click='record()', ng-show='can_record') Record
+      button.btn.btn-success(ng-click='save()', type='submit', class='{{ saved ? "disabled" : "" }}') Save
+    .btn-group(ng-show='playing || recording')
+      button.btn.btn-warning(ng-click='stop()') Stop
+      button.btn.btn-success(ng-click='save()', type='submit', class='{{ saved ? "disabled" : "" }}') Save
+    #saving.spinner(ng-if='saving')
+  #error
+
+.btn-group
+  button.btn.btn-primary(ng-click='view()') View
+  button.btn.btn-danger(ng-click='delete()') Delete!
 

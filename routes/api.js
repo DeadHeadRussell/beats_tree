@@ -1,106 +1,114 @@
 var express = require('express');
+var multiparty = require('multiparty');
+
+var tracks = require('../data/tracks');
+var trees = require('../data/trees');
 
 var router = express.Router();
 
-router.get('/tracks', function(req, res) {
-  var db = req.db;
-  var trees = db.get('trees');
-  trees.find({}).on('success', function(results) {
-    res.send({ tracks: results });
-  }).on('error', function(err) {
-    res.send({ error: err });
-  });
+router.post('/trees', function(req, res, next) {
+  var data = {
+    name: req.body.name,
+    tempo: req.body.tempo
+  };
+
+  trees.Create(data, req.db, function(tree) {
+    res.send(tree);
+  }, next);
 });
 
-router.get('/tracks/:id', function(req, res) {
-  var db = req.db;
-  var id = req.params.id;
-  var trees = db.get('trees');
-  trees.findOne({ _id: id }).on('success', function(result) {
-    res.send({ track: result });
-  }).on('error', function(err) {
-    res.send({ error: err });
-  });
+router.get('/trees', function(req, res, next) {
+  var meta_data = req.param('meta_data') || false;
+  trees.Read(req.db, meta_data, function(trees) {
+    res.send(trees);
+  }, next);
 });
 
-router.post('/tracks', function(req, res) {
-  var db = req.db;
-  var tempo = req.param('tempo');
+router.get('/trees/:id', function(req, res, next) {
+  trees.ReadOne(req.params.id, req.db, function(tree) {
+    res.send(tree);
+  }, next);
+});
 
-  if (tempo < 60 || tempo > 180) {
-    return res.send({ error: 'Invalid tempo: ' + tempo });
+router.put('/trees/:id', function(req, res, next) {
+  var data = {
+    name: req.body.name,
+    tempo: req.body.tempo
+  };
+
+  trees.Update(req.params.id, data, req.db, function() {
+    res.send();
+  }, next);
+});
+
+router.delete('/trees/:id', function(req, res, next) {
+  trees.Delete(req.params.id, req.db, function() {
+    res.send();
+  }, next);
+});
+
+router.post('/tracks', function(req, res, next) {
+  var data = {
+    previous: req.body.previous
+  };
+
+  if (!data.previous) {
+    next('Each track needs to be forked from a previous track');
   }
 
-  var grid = createGrid();
-  var previous = [];
-
-  var collection = db.get('trees');
-  collection.insert({ tempo: tempo, grid: grid, previous: previous }).on('success', function(result) {
-    res.send({ track: result });
-  }).on('error', function(err) {
-    res.send({ error: err });
+  tracks.ReadOne(data.previous, {}, req.db, function(previous) {
+    data.tree = previous.tree;
+    tracks.Create(data, req.db, function(track) {
+      res.send(track);
+    }, next);
   });
 });
 
-router.post('/tracks/:id', function(req, res) {
-  var db = req.db;
-  var previous_id = req.params.id;
-
-  var grid = createGrid();
-
-  var trees = db.get('trees');
-  trees.findOne({ _id: previous_id }).on('success', function(track) {
-    if (track) {
-      var tempo = track.tempo;
-      var previous = track.previous || [];
-      previous.push(previous_id);
-      while (previous.length > 4) {
-        previous.shift();
-      }
-      trees.insert({ tempo: tempo, grid: grid, previous: previous }).on('success', function(result) {
-        res.send({ track: result });
-      }).on('error', function(err) {
-        res.send({ error: err });
-      });
-    } else {
-      res.send({ error: 'Track id (' + previous_id + ') does not exist' });
-    }
-  }).on('error', function(err) {
-    res.send({ error: err });
-  });
+router.get('/tracks', function(req, res, next) {
+  tracks.Read(req.db, function(tracks) {
+    res.send(tracks);
+  }, next);
 });
 
-router.put('/tracks/:id', function(req, res) {
-  var db = req.db;
-  var id = req.params.id;
-
-  var x = req.body.x;
-  var y = req.body.y;
-  var value = req.body.value;
-
-  var trees = db.get('trees');
-  var update = {};
-  update['grid.' + x + '.' + y] = value;
-  trees.update({ _id: id }, { $set: update }).on('success', function() {
-    res.send({ status: 'success' });
-  }).on('error', function(error) {
-    res.send({ error: err });
-  });
+router.get('/tracks/:id', function(req, res, next) {
+  var previous = req.param('previous') || false;
+  var options = { previous: previous };
+  tracks.ReadOne(req.params.id, options, req.db, function(track) {
+    res.send(track);
+  }, next);
 });
 
-function createGrid() {
-  var grid = [];
-  var number_rows = 8;
-  var number_cols = 8 * 4;
-  for (var i = 0; i < number_rows; i++) {
-    var row = [];
-    for (var j = 0; j < number_cols; j++) {
-      row.push(0);
-    }
-    grid.push(row);
-  }
-  return grid;
-}
+router.put('/tracks/:id', function(req, res, next) {
+  var data = {
+    audio: req.body.audio,
+  };
+
+  tracks.Update(req.params.id, data, req.db, function() {
+    res.send();
+  }, next);
+});
+
+router.delete('/tracks/:id', function(req, res, next) {
+  tracks.Delete(req.params.id, req.db, function() {
+    res.send();
+  }, next);
+});
+
+router.post('/tracks/:id/audio', function(req, res, next) {
+  var data = {
+    audio: req.body.audio
+  };
+
+  tracks.UpdateAudio(req.params.id, data, req.db, function() {
+    res.send();
+  }, next);
+});
+
+router.get('/tracks/:id/audio', function(req, res, next) {
+  tracks.GetAudio(req.params.id, req.db, function(data) {
+    res.send(data);
+  }, next);
+});
 
 module.exports = router;
 

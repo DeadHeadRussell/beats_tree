@@ -1,0 +1,27 @@
+#trees.group
+  form.form-horizontal(role='form')
+    .form-group
+      label.control-label.col-sm-2(for='search') Search
+      .col-sm-10
+        input#search.form-control(type='search', ng-model='query')
+
+  ul.list-group
+    li.list-group-item(ng-repeat='tree in trees | filter:query | orderBy:order_prop')
+      a(href='#/tree/{{tree._id}}') {{tree.name || tree._id}}
+
+#create.group
+  form(role='form')
+    .form-group
+      label.control-label(for='name') Name
+      input#name.form-control(type='text', ng-model='name')
+    .form-group
+      - var min = 60
+      - var max = 180
+      label.control-label(for='tempo') Tempo: {{tempo || 120}}bpm
+      input#tempo.form-control(type='range', min='#{min}', max='#{max}', step='1', ng-model='tempo')
+    .form-group
+      input#metronome(type='checkbox', ng-model='metronome')
+      label.control-label(for='metronome') Hear Tempo
+    button#create.btn.btn-success(ng-click='create()', type='submit') Create
+  #error
+
