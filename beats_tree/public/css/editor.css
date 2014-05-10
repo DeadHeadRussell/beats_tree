@@ -1,0 +1,26 @@
+.grid {
+  width: 600px;
+}
+.grid_top {
+  display: inline-block;
+  width: 30px;
+  height: 5px;
+  margin: 2px;
+  border: 1px solid black;
+}
+.grid_top.on {
+  background: #444;
+}
+.grid_cell {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  margin: 2px;
+  border: 1px solid black;
+}
+.grid_cell.on {
+  background: #444;
+}
+.grid_cell.playing {
+  background: yellow;
+}

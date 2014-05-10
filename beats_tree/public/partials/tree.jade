@@ -1,0 +1,8 @@
+div
+  span Search
+  input(ng-model='query')
+
+ul(class='tracks')
+  li(ng-repeat='track in tracks | filter:query | orderBy:order_prop', class='track')
+    a(href='#/tracks/{{track.id}}') {{track.id}}
+

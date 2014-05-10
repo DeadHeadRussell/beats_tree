@@ -1,0 +1,31 @@
+h2 {{tree.name}}
+
+script(type='text/ng-template', id='track_item').
+  <li>
+    <a href='#/tracks/{{data._id}}'>
+      {{ data._id }}
+    </a>
+    <ul>
+      <li ng-repeat='data in data.next' ng-include="'track_item'" tree-node></li>
+    </ul>
+  </li>
+
+.tree
+
+
+#controls.group
+  form(role='form')
+    #playstop
+      button.btn.btn-primary(ng-click='play()', ng-show='!playing') Play
+      button.btn.btn-primary(ng-click='stop()', ng-show='playing') Stop
+
+    .form-group
+      label.control-label(for='random') Random Jump Percentage
+      input#random.form-control(ng-model='random_percent', type='range', min='0', max='1', step='0.01')
+
+    #track-buttons.btn-group
+      button.btn.btn-primary(ng-click='view()', class='{{!selected_track ? "disabled" : ""}}') View
+      button.btn.btn-success(ng-click='play_from()', class='{{!selected_track || playing ? "disabled" : ""}}') Play From Track
+      button.btn.btn-danger(ng-click='delete()', class='{{!selected_track ? "disabled" : ""}}') Delete!
+  #error
+

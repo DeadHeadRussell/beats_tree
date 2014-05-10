@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  h1 New Recorder
+  div
+    - var min = 60
+    - var max = 180
+    label
+      | Tempo:
+      input#tempo(type='range', min='#{min}', max='#{max}', step='1')
+    div#range
+      span#min= min
+      span#max= max
+    button#create Create
+  div#error
+
