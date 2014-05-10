@@ -8,6 +8,6 @@ To Run
 * `./bin/www`
 * Browse to `localhost:3000`.
 
-demo
+Demo
 ====
 http://beats.ajrussell.ca
