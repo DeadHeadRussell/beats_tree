@@ -3,13 +3,16 @@ var cookieParser = require('cookie-parser');
 var express = require('express');
 var favicon = require('static-favicon');
 var logger = require('morgan');
-var monk = require('monk');
 var path = require('path');
+const {Pool} = require('pg');
 
+var migrations = require('./data/migrations');
 var routes = require('./routes/routes');
 
 var app = express();
-var db = monk('localhost:27017/beatsdb');
+const pgPool = new Pool();
+
+const migrationsDone = migrations.run(pgPool);
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -25,8 +28,15 @@ app.use('/js', express.static(path.join(__dirname, 'bower_components')));
 app.use('/bootstrap', express.static(path.join(__dirname, 'bower_components/bootstrap/dist')));3
 
 app.use(function(req, res, next) {
-  req.db = db;
-  next();
+  migrationsDone.then(
+    () => {
+      req.db = pgPool;
+      next();
+    },
+    err => {
+      throw err;
+    }
+  );
 });
 
 routes.create(app);

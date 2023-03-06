@@ -1,170 +1,88 @@
-var async = require('async');
-var fs = require('fs');
+const {fetchAll, fetchOne, fetchNone} = require('./utils');
 
-var trees = null;
-
-function Create(data, db, success, error) {
-  data = validateData(data);
-  if (typeof data == 'string') {
-    return error(data);
-  }
-
-  var tracks_collection = db.get('tracks');
-  tracks_collection.insert(data).success(function(track) {
-    addNext(track.previous, track._id, db, function(previous_track) {
-      success(track);
-    }, function(err) {
-      Delete(track._id, db, function() {}, function(err) {
-        console.error('ERROR: Could not delete track (' + track._id + ')', err);
-      });
-      error(err);
-    });
-  }).error(error);
+function Create(data, db) {
+  const CREATE_QUERY = `
+    INSERT INTO tracks (name, previous_track_id, tree_id)
+    VALUES ($1, $2, $3)
+    RETURNING *
+  `
+  const values = [data.name, data.previous_track_id, data.tree_id];
+  return db.query(CREATE_QUERY, values).then(fetchOne);
 }
 
-function Read(db, success, error) {
-  var tracks_collection = db.get('tracks');
-  tracks_collection.find({}).success(function(tracks) {
-    if (!tracks) {
-      return success([]);
-    }
-
-    async.map(tracks, getMetaData(db), function(err, tracks) {
-      if (err) {
-        return error(err);
-      }
-      success(tracks);
-    });
-  }).error(error);
+function Read(db) {
+  const READ_QUERY = 'SELECT * FROM tracks';
+  return db.query(READ_QUERY).then(fetchAll);
 }
 
-function ReadOne(id, options, db, success, error) {
-  options.previous_count = options.previous_count || 1;
-  var tracks_collection = db.get('tracks');
-  tracks_collection.findOne({ _id: id }).success(function(track) {
-    if (!track) {
-      return error({
-        status: 404,
-        message: 'Could not find track _id "' + id + '"'
-      });
-    }
-
-    getMetaData(db)(track, function(err, track) {
-      if (err) {
-        return error(err);
-      }
-
-      if (options.previous && track.previous && options.previous_count < 4) {
-        ReadOne(track.previous, options, db, function(previous_track) {
-          track.previous = previous_track;
-          success(track);
-        }, error);
-      } else {
-        track.previous = null;
-        success(track);
-      }
-    });
-  }).error(error);
+function ReadForTree(tree_id, db) {
+  const READ_QUERY = `
+    SELECT * FROM tracks
+    WHERE tree_id = $1
+  `;
+  const values = [tree_id];
+  return db.query(READ_QUERY, values).then(fetchAll);
 }
 
-function ReadRecursive(id, db, success, error) {
-  var tracks_collection = db.get('tracks');
-  tracks_collection.findOne({ _id: id }).success(function(track) {
-    if (!track) {
-      console.error('ERROR: Recursive read of track failed _id "' + id + '"');
-      return success(track);
-    }
-
-    async.map(track.next, readAsync(db), function(err, tracks) {
-      if (err) {
-        return error(err);
-      }
-      track.next = tracks;
-      success(track);
-    });
-  }).error(error);
+function ReadOne(id, db) {
+  const READ_QUERY = 'SELECT * FROM tracks WHERE id = $1';
+  const values = [id];
+  return db.query(READ_QUERY, values).then(fetchOne);
 }
 
-function Update(id, data, db, success, error) {
-  var tracks_collection = db.get('tracks');
-  tracks_collection.update({ _id: id }, { $set: data }).success(success).error(error);
+function Update(id, data, db) {
+  const UPDATE_QUERY = `
+    UPDATE tracks
+    SET name = $2
+    WHERE id = $1
+    RETURNING *
+  `;
+  const values = [id, data.name];
+  return db.query(UPDATE_QUERY, values).then(fetchOne);
 }
 
-function Delete(id, db, success, error) {
-  var tracks_collection = db.get('tracks');
-  ReadOne(id, {}, db, function(track) {
-    async.map(track.next, deleteAsync(db), function(err) {
-      if (err) {
-        return error(err);
-      }
-
-      DeleteAudio(id, db, function() {}, function(err) {
-        console.error('ERROR: Could not delete audio object');
-      });
-
-      tracks_collection.update({ _id: track.previous }, { $pull: { next: track._id }}).success(function() {
-        tracks_collection.remove({ _id: id }).success(success).error(error);
-      }).error(error);
-    });
-  }, error);
+function Delete(id, db) {
+  throw new Error('Not implemented');
 }
 
-function UpdateAudio(id, data, db, success, error) {
-  var audio_collection = db.get('audio');
-  audio_collection.update({ _id: id}, { $set: data }, { upsert: true }).success(success).error(error);
+function UpdateAudio(id, audio, mimetype, db) {
+  const UPDATE_QUERY = `
+    INSERT INTO audio (track_id, content, mimetype)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (track_id) DO UPDATE
+    SET
+      content = EXCLUDED.content,
+      mimetype = EXCLUDED.mimetype
+  `;
+  const values = [id, audio, mimetype];
+  return db.query(UPDATE_QUERY, values).then(fetchNone);
 }
 
-function GetAudio(id, db, success, error) {
-  var audio_collection = db.get('audio');
-  audio_collection.findOne({ _id: id }).success(success).error(error);
+function GetAudio(id, db) {
+  const READ_QUERY = 'SELECT * FROM audio WHERE track_id = $1';
+  const values = [id];
+  return db.query(READ_QUERY, values).then(fetchOne);
 }
 
 function DeleteAudio(id, db, success, error) {
-  var audio_collection = db.get('audio');
-  audio_collection.remove({ _id: id }).success(success).error(error);
+  throw new Error('Not implemented');
 }
 
 module.exports = {
   Create: Create,
   Read: Read,
+  ReadForTree: ReadForTree,
   ReadOne: ReadOne,
-  ReadRecursive: ReadRecursive,
   Update: Update,
   Delete: Delete,
   UpdateAudio: UpdateAudio,
   GetAudio: GetAudio
 };
 
-function readAsync(db) {
-  return function(id, callback) {
-    ReadRecursive(id, db, function(track) {
-      callback(null, track);
-    }, function(err) {
-      callback(err);
-    });
-  };
-}
-
 function deleteAsync(db) {
   return function(id, callback) {
     Delete(id, db, function() {
       callback();
-    }, function(err) {
-      callback(err);
-    });
-  };
-}
-
-function getMetaData(db) {
-  return function(track, callback) {
-    if (!trees) {
-      trees = require('./trees');
-    }
-
-    trees.ReadOne(track.tree, db, function(tree) {
-      track.name = tree.name;
-      track.tempo = tree.tempo;
-      callback(null, track);
     }, function(err) {
       callback(err);
     });
@@ -197,10 +115,5 @@ function validateData(dirty_data) {
   }
 
   return data;
-}
-
-function addNext(id, next, db, success, error) {
-  var tracks_collection = db.get('tracks');
-  tracks_collection.update({ _id: id }, { $addToSet: { next: next }}).success(success).error(error);
 }
 

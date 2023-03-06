@@ -1,31 +1,24 @@
-function getTree($scope, id, $http, callback) {
-  $scope.tree = {
-    _id: id
-  };
-  $http.get('/api/trees/' + $scope.tree._id).success(function(tree) {
-    $scope.tree = tree;
-    callback();
-  }).error(error);
+function getTree(id, $http, callback) {
+  $http.get('/api/trees/' + id)
+    .success(callback)
+    .error(error);
 }
 
-function deleteTree($scope, $http, $location) {
-  return;
-  return function() {
-    $http.delete('/api/trees/' + $scope.tree._id).success(function() {
-      $location.path('/trees');
-    }).error(error);
-  };
+function getTracksForTree(treeId, $http, callback) {
+  $http.get('/api/trees/' + treeId + '/tracks')
+    .success(callback)
+    .error(error);
 }
 
 function getTrack($scope, id, $http, callback) {
   $scope.track = {
-    _id: id
+    id: id
   };
-  $http.get('/api/tracks/' + $scope.track._id + '?previous=true').success(function(track) {
+  $http.get('/api/tracks/' + $scope.track.id + '?previous=true').success(function(track) {
     $scope.track = track;
 
     $scope.length = {};
-    $scope.length.seconds = 16 * 60 / track.tempo;
+    $scope.length.seconds = 16 * 60 / 1; //track.tempo;
     $scope.length.seconds_neat = parseInt($scope.length.seconds * 100) / 100;
 
     if (callback) {
@@ -37,7 +30,7 @@ function getTrack($scope, id, $http, callback) {
 function deleteTrack($scope, $http, $location) {
   return;
   return function() {
-    $http.delete('/api/tracks/' + $scope.track._id).success(function() {
+    $http.delete('/api/tracks/' + $scope.track.id).success(function() {
       $location.path('/trees');
     }).error(error);
   };
@@ -63,6 +56,6 @@ function getAudio($scope, id, track, $http, previous) {
 
 function error(data, status, headers, config, statusText) {
   var elem = $('#error');
-  elem.text('Error: ' + statusText + ' ' + data);
+  elem.html(data);
 }
 

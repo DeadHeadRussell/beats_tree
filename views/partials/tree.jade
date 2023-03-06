@@ -2,8 +2,8 @@ h2 {{tree.name}}
 
 script(type='text/ng-template', id='track_item').
   <li>
-    <a href='#/tracks/{{data._id}}'>
-      {{ data._id }}
+    <a href='#/tracks/{{data.id}}'>
+      {{ data.id }}
     </a>
     <ul>
       <li ng-repeat='data in data.next' ng-include="'track_item'" tree-node></li>
@@ -14,18 +14,30 @@ script(type='text/ng-template', id='track_item').
 
 
 #controls.group
-  form(role='form')
-    #playstop
-      button.btn.btn-primary(ng-click='play()', ng-show='!playing') Play
+  div(ng-show='tracks.length > 0')
+    p(ng-show='selectedTrack') Selected - {{selectedTrack.name}}
+    p(ng-hide='selectedTrack') Select a track in the view above
+
+  form(role='form')#new-track
+    .form-group
+      label.control-label(for='track-audio') Select Track Audio
+        input#track-audio.form-control(type='file', accept='audio/*', onchange='angular.element(this).scope().updateFileName()')
+      label.control-label(for='track-name') Name
+        input#track-name.form-control(ng-model='newTrackName', type='text')
+    button.btn.btn-primary(ng-show='!tracks.length', ng-click='addTrack()', type='submit') Add First Track
+    button.btn.btn-primary(ng-show='tracks.length', ng-click='addTrack()', type='submit', class='{{selectedTrack ? "" : "disabled"}}') Add New Track
+
+  form(role='form', ng-show='tracks.length > 0')
+    #track-buttons.btn-group
+      button.btn.btn-primary(ng-click='switchTracks()', ng-show='playing') Switch tracks
       button.btn.btn-primary(ng-click='stop()', ng-show='playing') Stop
+      button.btn.btn-primary(ng-click='play()', ng-show='!playing') Play from start
+      button.btn.btn-primary(ng-click='playSelected()', ng-show='!playing' class='{{!selectedTrack || playing ? "disabled" : ""}}') Play From Track
+      button.btn.btn-primary(ng-click='download()', class='{{!selectedTrack ? "disabled" : ""}}') Download
 
     .form-group
-      label.control-label(for='random') Random Jump Percentage
-      input#random.form-control(ng-model='random_percent', type='range', min='0', max='1', step='0.01')
+      label.control-label(for='auto-transition') Auto Transition Time
+      input#auto-transition.form-control(ng-model='autoTransitionTime', ng-change='updateTransitionTimer()', type='range', min='0', max='0.5', step='0.01')
 
-    #track-buttons.btn-group
-      button.btn.btn-primary(ng-click='view()', class='{{!selected_track ? "disabled" : ""}}') View
-      button.btn.btn-success(ng-click='play_from()', class='{{!selected_track || playing ? "disabled" : ""}}') Play From Track
-      button.btn.btn-danger(ng-click='delete()', class='{{!selected_track ? "disabled" : ""}}') Delete!
-  #error
+#error
 

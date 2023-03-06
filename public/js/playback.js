@@ -1,5 +1,5 @@
 window.AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext;
-var context = new AudioContext();
+const context = new AudioContext();
 
 function getAudioBufferFromFile(file, callback) {
   var reader = new FileReader();
@@ -11,36 +11,31 @@ function getAudioBufferFromFile(file, callback) {
   }
 }
 
-function playAudio(buffers, gains, offset_percent, start, scope) {
-  offset_percent = offset_percent || 0;
-  start = start || 0;
-  var sources = [];
-  $.each(buffers, function(i, buffer) {
+function playAudio(buffers, gains, offset) {
+  offset = offset || 0;
+
+  const duration = Math.max(...buffers.map(buffer => buffer.duration));
+
+  const sources = buffers.map((buffer, i) => {
     var source = context.createBufferSource();
     source.buffer = buffer;
-    source.loop = true;
 
     var gain_node = context.createGain();
-    if (i == 0 && scope) {
-      // Omg, please kill me now.
-      scope.gain_node = gain_node;
-    }
     source.connect(gain_node);
     gain_node.gain.value = gains[i] || 1;
     gain_node.connect(context.destination);
-    sources.push(source);
+    return source;
   });
 
+  const playDuration = duration - offset;
 
-  for (var i = 0; i < buffers.length; i++) {
-    sources[i].start(start, buffers[i].duration * offset_percent);
-  }
+  sources.forEach(source => source.start(0, offset, playDuration));
 
   return sources;
 }
 
 function stopAudio(sources) {
-  $.each(sources, function(i, source) {
+  sources.forEach(source => {
     source.stop();
     source.disconnect();
   });
@@ -62,11 +57,11 @@ function shortenBuffer(full_buffer, length) {
 }
 
 function createAudioBuffer(buffers, sampleRate, offset, length) {
-  var audio_buffer = context.createBuffer(buffers.length, length, sampleRate);
+  var audioBuffer = context.createBuffer(buffers.length, length, sampleRate);
   $.each(buffers, function(i, input) {
     // XXX: Do I really have to add 512 here? Much hacky, so latency, wow.
     var input = input.subarray(offset + 1024);
-    var output = audio_buffer.getChannelData(i);
+    var output = audioBuffer.getChannelData(i);
 
     if (input.length > length) {
       if (input.length >= length + 5120) {
@@ -84,23 +79,11 @@ function createAudioBuffer(buffers, sampleRate, offset, length) {
     output.set(input);
   });
 
-  return audio_buffer;
+  return audioBuffer;
 }
 
-function getAudioBuffer(track, audio_data) {
-  if (!track.audio) {
-    return;
-  }
-  var numberOfChannels = track.audio.numberOfChannels;
-  var length = track.audio.length;
-  var sampleRate = track.audio.sampleRate;
-  var audio_buffer = context.createBuffer(numberOfChannels, length, sampleRate);
-  for (var i = 0; i < numberOfChannels; i++) {
-    var input = audio_data.subarray(i * length, (i+1) * length);
-    var output = audio_buffer.getChannelData(i);
-    output.set(input);
-  }
-  return audio_buffer;
+function getAudioBuffer(audioData) {
+  return context.decodeAudioData(audioData);
 }
 
 function playMetronome(tempo, length, callback, silence) {

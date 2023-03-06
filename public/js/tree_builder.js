@@ -1,9 +1,13 @@
-function buildTree($scope, elem, click_callback, built_callback) {
-  if (!$scope.tree.root) {
+function buildTree(tracks, elem, $http, click_callback, built_callback) {
+  elem.innerHTML = '';
+
+  if (!tracks || !tracks.length) {
     return;
   }
 
-  function callback(track) {
+  const roots = tracks.filter(t => !t.previous_track_id);
+
+  function onClick(track) {
     if (selected_track == track) {
       selected_track = null;
       track.box.animate({ 'stroke-width': 2 }, 400);
@@ -30,178 +34,154 @@ function buildTree($scope, elem, click_callback, built_callback) {
     r: 5
   };
 
-  var total_nodes = 0;
-  var number_of_layers = 0;
-  var biggest_layer = 0;
-
-  var root = [ $scope.tree.root ];
-  parseTree(root);
+  const metadata = parseTree(tracks);
 
   var size = {
-    width: number_of_layers * box.width,
-    height: biggest_layer * box.height
+    width: metadata.numLayers * box.width,
+    height: metadata.biggestLayer * box.height
   };
 
-  var r = Raphael(elem, size.width, size.height);
-  createShapes(root);
-  moveShapes(root, 0);
-  connectShapes(root);
+  const r = Raphael(elem, size.width, size.height);
+  tracks.forEach(track => track.box = createBox(track));
+  moveShapes([metadata.root], 0);
+  connectShapes(tracks);
 
-  built_callback(total_nodes);
+  built_callback(metadata);
 
-  function parseTree(nodes) {
-    number_of_layers++;
-    var next_nodes = [];
-    $.each(nodes, function(i, node) {
-      if (!node) { return; }
-      total_nodes++;
-      if (node.next) {
-        next_nodes = next_nodes.concat(node.next);
-      }
-    });
-
-    biggest_layer = Math.max(nodes.length, biggest_layer);
-
-    if (next_nodes.length > 0) {
-      parseTree(next_nodes);
-    }
-  }
-
-  function createShapes(nodes) {
-    var next_nodes = [];
-    $.each(nodes, function(i, node) {
-      if (!node) { return; }
-      node.box = createBox(node);
-      if (node.next) {
-        next_nodes = next_nodes.concat(node.next);
-      }
-    });
-
-    if (next_nodes.length > 0) {
-      createShapes(next_nodes);
-    }
-  }
-
-  function connectShapes(nodes) {
-    var next_nodes = [];
-    $.each(nodes, function(i, node) {
-      if (!node) { return; }
-      $.each(node.next, function(i, child) {
-        if (!child) { return; }
-        // YOLO
-        child.previous = node;
-        child.connection = r.connection(node.box, child.box, '#000', '#FFF|5');
+  function connectShapes(tracks) {
+    tracks.forEach(track => {
+      track.next.forEach(next => {
+        next.connection = r.connection(track.box, next.box, '#017', '#FFF|5');
       });
-
-      if (node.next) {
-        next_nodes = next_nodes.concat(node.next);
-      }
     });
-
-    if (next_nodes.length > 0) {
-      connectShapes(next_nodes);
-    }
   }
 
   function moveShapes(nodes, level) {
-    var height = size.height / nodes.length;
-    var next_nodes = [];
-    $.each(nodes, function(i, node) {
-      if (!node) { return; }
-      var attrs = {
-        x: level * box.width,
-        y: i * height + (height - box.h)/2
-      };
-      node.box.attr(attrs);
-      node.level = level;
+    const height = size.height / nodes.length;
+    const nextNodes = nodes.reduce(
+      (nextNodes, node, i) => {
+        nextNodes = nextNodes.concat(node.next);
+        var attrs = {
+          x: level * box.width,
+          y: i * height + (height - box.h)/2
+        };
+        node.box.attr(attrs);
+        node.level = level;
 
-      createWaveform(node, attrs);
+        createWaveform(node, attrs);
+        return nextNodes;
+      },
+      []
+    );
 
-      if (node.next) {
-        next_nodes = next_nodes.concat(node.next);
-      }
-    });
-
-    if (next_nodes.length > 0) {
-      moveShapes(next_nodes, level + 1);
+    if (nextNodes.length > 0) {
+      moveShapes(nextNodes, level + 1);
     }
   }
 
   function createBox(track) {
     var shape = r.rect(0, 0, box.w, box.h, box.r);
     shape.attr({ fill: box_colour, stroke: box_colour, 'fill-opacity': 0, 'stroke-width': 2, cursor: 'pointer' });
-    shape.click(function() {
-      callback(track);
-    });
-
-    shape.hover(function() {
-      shape.animate({ 'stroke': 'green', 'stroke-opacity': 0.6 }, 250);
-    }, function() {
-      shape.animate({ 'stroke': box_colour, 'stroke-opacity': 1.0 }, 250);
-    });
-
+    shape.click(() => onClick(track));
+    shape.hover(
+      () => shape.animate({ 'stroke': 'green', 'stroke-opacity': 0.6 }, 250),
+      () => shape.animate({ 'stroke': box_colour, 'stroke-opacity': 1.0 }, 250)
+    );
     return shape;
   }
 
   function createWaveform(track, attrs) {
-    $.get('/api/tracks/' + track._id + '/audio', function(data) {
-      var audio = data.audio;
+    $http.get('/api/tracks/' + track.id + '/audio')
+      .success(data => {
+        var audioArray = base64DecToArr(data.audio);
+        track.rawAudioArray = audioArray.slice();
 
-      var array = new Float32Array(base64DecToArr(audio));
-      var audio_buffer = getAudioBuffer(track, array);
-      var display_buffer = getDisplayArray(audio_buffer, 2000);
-      track.audio_buffer = audio_buffer;
-        
-      var length = display_buffer.length;
-      var ox = attrs.x;
-      var oy = attrs.y;
-      var dx = box.w / length;
-      var dy = box.h / 2;
+        getAudioBuffer(audioArray)
+          .then(audioBuffer => {
+            track.audioBuffer = audioBuffer;
 
-      var path_string = '';
-      path_string += moveTo(ox, oy + dy);
+            const displayBuffer = getDisplayArray(audioBuffer, 2000);
+            const waveformPath = getWaveformPath(displayBuffer, attrs);
 
-      for (var x = 0; x < length; x++) {
-        var value = display_buffer[x];
-        if (value >= 0) {
-          path_string += lineTo(ox + x * dx, oy + value * dy + (dy + 0.5));
-        }
-      }
+            var path = r.path(waveformPath);
+            path.attr({ fill: 'black', cursor: 'pointer' });
+            path.hover(function() {
+              track.box.animate({ 'stroke': 'green', 'stroke-opacity': 0.6 }, 250);
+            }, function() {
+              track.box.animate({ 'stroke': box_colour, 'stroke-opacity': 1.0 }, 250);
+            });
 
-      for (var x = length - 1; x >= 0; x--) {
-        var value = display_buffer[x];
-        if (value <= 0) {
-          path_string += lineTo(ox + x * dx, oy + value * dy + (dy - 0.5));
-        }
-      }
-
-      path_string += closePath();
-
-      var path = r.path(path_string);
-      path.attr({ fill: 'black', cursor: 'pointer' });
-      path.hover(function() {
-        track.box.animate({ 'stroke': 'green', 'stroke-opacity': 0.6 }, 250);
-      }, function() {
-        track.box.animate({ 'stroke': box_colour, 'stroke-opacity': 1.0 }, 250);
-      });
-
-      path.click(function() {
-        callback(track);
-      });
-
-      function moveTo(x, y) {
-        return 'M' + x + ',' + y
-      }
-
-      function lineTo(x, y) {
-        return 'L' + x + ',' + y;
-      }
-
-      function closePath() {
-        return 'Z';
-      }
-    });
+            path.click(function() {
+              onClick(track);
+            });
+          });
+      })
+      .error(error);
   }
+
+  function getWaveformPath(displayBuffer, attrs) {
+    var length = displayBuffer.length;
+    var ox = attrs.x;
+    var oy = attrs.y;
+    var dx = box.w / length;
+    var dy = box.h / 2;
+
+    var pathString = '';
+    pathString += moveTo(ox, oy + dy);
+
+    for (var x = 0; x < length; x++) {
+      var value = displayBuffer[x];
+      if (value >= 0) {
+        pathString += lineTo(ox + x * dx, oy + value * dy + (dy + 0.5));
+      }
+    }
+
+    for (var x = length - 1; x >= 0; x--) {
+      var value = displayBuffer[x];
+      if (value <= 0) {
+        pathString += lineTo(ox + x * dx, oy + value * dy + (dy - 0.5));
+      }
+    }
+
+    pathString += closePath();
+    return pathString;
+
+    function moveTo(x, y) {
+      return 'M' + x + ',' + y
+    }
+
+    function lineTo(x, y) {
+      return 'L' + x + ',' + y;
+    }
+
+    function closePath() {
+      return 'Z';
+    }
+  }
+}
+
+function parseTree(tracks) {
+  var numLayers = 0;
+  var biggestLayer = 0;
+  const numNodes = tracks.length;
+
+  function getChildren(track) {
+    numLayers++;
+    const children = tracks
+      .filter(child => child.previous_track_id == track.id)
+      .map(child => {
+        child.previous = track;
+        return child;
+      })
+      .map(getChildren);
+    track.next = children;
+    biggestLayer = Math.max(biggestLayer, children.length);
+    return track;
+  }
+
+  const root = getChildren({id: null}).next[0];
+  root.previous = null;
+  return {root, numLayers, biggestLayer, numNodes};
 }
 
 Raphael.fn.connection = function (obj1, obj2, line, bg) {

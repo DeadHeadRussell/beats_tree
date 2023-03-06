@@ -1,0 +1,28 @@
+services:
+  app:
+    build: .
+    ports:
+      - 3000:3000
+    volumes:
+      - ./bin:/app/bin
+      - ./data:/app/data
+      - ./public:/app/public
+      - ./routes:/app/routes
+      - ./views:/app/views
+    environment:
+      PGHOST: database
+      PGUSER: beats
+      PGPASSWORD: mypassword
+      PBDATABASE: beats
+
+  database:
+    image: postgres:14
+    ports:
+      - 5423:5432
+    environment:
+      POSTGRES_USER: beats
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: beats
+
+    
+

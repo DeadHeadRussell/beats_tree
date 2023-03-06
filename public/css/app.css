@@ -66,6 +66,9 @@ label[for='metronome'] {
 .tree {
   overflow-x: scroll;
 }
+#new-track {
+  margin-bottom: 10px;
+}
 #trees.group,
 #create.group,
 #controls.group {
@@ -80,8 +83,11 @@ label[for='metronome'] {
 #controls.group:after {
   content: 'controls';
 }
-#playstop {
+#track-buttons {
   margin-bottom: 10px;
+}
+#auto-transition {
+  max-width: 200px;
 }
 .waveform {
   position: relative;

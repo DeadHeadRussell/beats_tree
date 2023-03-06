@@ -1,0 +1,21 @@
+Technical issues:
+- No auth / security
+- Cannot handle large audio (eg, wav / raw)
+- Code is around a decade old, and it shows, but is simple enough for a relatively quick rewrite
+- UI is rough, had no design thought put into it
+- No audio parsing is done, just plays all parts blindly from beginning to end
+-- Eg, what if the parts are different length?
+-- Normalizing gain / volume (I have gain nodes built in, just no UI to control them)
+
+
+Possible fancy features
+- Lots of opportunities for fancy displays / animations
+- Potential for graph instead of tree.
+-- Multiple root nodes
+-- Non-linear combination of stems
+- Different playback algorithms
+-- only neighbours
+-- visit all in some order
+-- sync to tempo
+-- sync to sections? Dunno how that would work when sections aren't even guaranteed to match between parts
+
